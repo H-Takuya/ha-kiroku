@@ -35,18 +35,29 @@
     }
     #slots { display: flex; gap: 0.9em; justify-content: center; margin-bottom: 1.6em; }
     .slot-btn {
-      flex: 1; max-width: 150px; padding: 1.2em 0.3em 1em; border-radius: 24px; border: 3px solid #ffe0ec;
-      background: #fff; color: #999; font-size: 1.05em; font-weight: 700; cursor: pointer; font-family: inherit;
-      transition: transform 0.15s, background 0.2s, border-color 0.2s, color 0.2s;
+      flex: 1; max-width: 150px; padding: 1.2em 0.3em 1em; border-radius: 24px; border: 3px solid #e3e3e3;
+      background: #f4f4f4; color: #aaa; font-size: 1.05em; font-weight: 700; cursor: pointer; font-family: inherit;
+      transition: transform 0.15s, background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s;
     }
     .slot-btn .emoji-circle {
-      display: flex; align-items: center; justify-content: center; width: 3.2em; height: 3.2em; margin: 0 auto 0.4em;
-      border-radius: 50%; background: #ffeef4; font-size: 1.7em; transition: background 0.2s, transform 0.2s;
+      position: relative; display: flex; align-items: center; justify-content: center; width: 3.2em; height: 3.2em; margin: 0 auto 0.4em;
+      border-radius: 50%; background: #e6e6e6; font-size: 1.7em; filter: grayscale(70%); opacity: 0.6;
+      transition: background 0.2s, transform 0.2s, filter 0.2s, opacity 0.2s;
     }
-    .slot-btn[data-slot="brush"] .emoji-circle { background: #e3fbf0; }
-    .slot-btn[data-slot="floss"] .emoji-circle { background: #eaf1ff; }
-    .slot-btn.done { background: #fff8ea; border-color: #ffcc4d; color: #b8860b; }
-    .slot-btn.done .emoji-circle { transform: scale(1.12) rotate(-6deg); }
+    .slot-btn .check-badge {
+      position: absolute; top: -4px; right: -4px; width: 1.4em; height: 1.4em; border-radius: 50%;
+      background: #34c759; color: #fff; font-size: 0.7em; display: flex; align-items: center; justify-content: center;
+      opacity: 0; transform: scale(0.4); transition: opacity 0.15s, transform 0.15s; box-shadow: 0 2px 4px #0002;
+    }
+    .slot-btn .slot-status { display: block; margin-top: 0.5em; font-size: 0.78em; font-weight: 700; color: #bbb; letter-spacing: 0.03em; }
+    .slot-btn[data-slot="floss"] .check-badge { background: #2f7fe0; }
+    .slot-btn.done { box-shadow: 0 4px 10px #0001; }
+    .slot-btn.done .emoji-circle { filter: none; opacity: 1; transform: scale(1.12) rotate(-6deg); }
+    .slot-btn.done .check-badge { opacity: 1; transform: scale(1); }
+    .slot-btn[data-slot="brush"].done { background: #e3fbf0; border-color: #34c759; color: #1a8a3d; }
+    .slot-btn[data-slot="brush"].done .emoji-circle { background: #c8f4d9; }
+    .slot-btn[data-slot="floss"].done { background: #eaf1ff; border-color: #2f7fe0; color: #1c5fae; }
+    .slot-btn[data-slot="floss"].done .emoji-circle { background: #cfe3ff; }
     .slot-btn:active { transform: scale(0.95); }
     #complete { text-align: center; color: #34c77b; font-weight: 700; margin-bottom: 1em; min-height: 1.4em; }
     #memoSection { margin: 0 0 1.6em 0; }
@@ -111,8 +122,16 @@
       <span class="streak-badge" id="streakFloss"></span>
     </div>
     <div id="slots">
-      <button class="slot-btn" data-slot="brush"><span class="emoji-circle">🪥</span>はみがき</button>
-      <button class="slot-btn" data-slot="floss"><span class="emoji-circle">🧵</span>デンタルフロス</button>
+      <button class="slot-btn" data-slot="brush">
+        <span class="emoji-circle">🪥<span class="check-badge">✔</span></span>
+        はみがき
+        <span class="slot-status"></span>
+      </button>
+      <button class="slot-btn" data-slot="floss">
+        <span class="emoji-circle">🧵<span class="check-badge">✔</span></span>
+        デンタルフロス
+        <span class="slot-status"></span>
+      </button>
     </div>
     <div id="complete"></div>
     <div id="memoSection">

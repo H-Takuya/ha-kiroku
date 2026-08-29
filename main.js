@@ -83,7 +83,9 @@ function render() {
 
   document.querySelectorAll('.slot-btn').forEach(btn => {
     const slot = btn.dataset.slot;
-    btn.classList.toggle('done', !!selectedData[slot]);
+    const done = !!selectedData[slot];
+    btn.classList.toggle('done', done);
+    btn.querySelector('.slot-status').textContent = done ? '✔ できた！' : '◯ まだ';
   });
 
   const allDone = SLOTS.every(s => selectedData[s.key]);
