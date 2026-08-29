@@ -168,6 +168,79 @@ function exportCsv() {
   URL.revokeObjectURL(url);
 }
 
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else { inQuotes = false; }
+      } else {
+        field += c;
+      }
+      continue;
+    }
+    if (c === '"') inQuotes = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\r') { /* ignore, \n終端でまとめて処理 */ }
+    else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+    else field += c;
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+function csvToRecords(rows) {
+  const records = {};
+  const isDate = s => /^\d{4}-\d{2}-\d{2}$/.test(s);
+  const start = rows.length && isDate((rows[0][0] || '').trim()) ? 0 : 1;
+  for (let i = start; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || !row.length) continue;
+    const dateStr = (row[0] || '').trim();
+    if (!isDate(dateStr)) continue;
+    records[dateStr] = {
+      brush: (row[1] || '').trim() === '○',
+      floss: (row[2] || '').trim() === '○',
+      memo: (row[3] || '').slice(0, MEMO_MAX_LENGTH),
+    };
+  }
+  return records;
+}
+
+let pendingImportRecords = null;
+
+function openImportModal() {
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeImportModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  pendingImportRecords = null;
+  document.getElementById('importFile').value = '';
+}
+
+function applyImport(mode) {
+  if (!pendingImportRecords) return;
+  let data;
+  if (mode === 'replace') {
+    data = pendingImportRecords;
+  } else {
+    data = loadData();
+    Object.keys(pendingImportRecords).forEach(dateStr => {
+      data[dateStr] = pendingImportRecords[dateStr];
+    });
+  }
+  saveData(data);
+  closeImportModal();
+  render();
+  alert('取り込みが完了しました！');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.slot-btn').forEach(btn => {
     btn.addEventListener('click', () => toggleSlot(btn.dataset.slot));
@@ -190,5 +263,30 @@ document.addEventListener('DOMContentLoaded', () => {
     saveMemo(e.target.value);
   });
   document.getElementById('exportCsv').addEventListener('click', exportCsv);
+
+  const importFile = document.getElementById('importFile');
+  document.getElementById('importCsv').addEventListener('click', () => importFile.click());
+  importFile.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      let text = String(reader.result);
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+      const records = csvToRecords(parseCsv(text));
+      if (Object.keys(records).length === 0) {
+        alert('読み込めるデータが見つかりませんでした。エクスポートしたCSVファイルを選んでください。');
+        importFile.value = '';
+        return;
+      }
+      pendingImportRecords = records;
+      openImportModal();
+    };
+    reader.readAsText(file);
+  });
+  document.getElementById('modalReplace').addEventListener('click', () => applyImport('replace'));
+  document.getElementById('modalMerge').addEventListener('click', () => applyImport('merge'));
+  document.getElementById('modalCancel').addEventListener('click', closeImportModal);
+
   render();
 });

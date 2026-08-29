@@ -58,10 +58,29 @@
     #memoInput:focus { outline: none; border-color: #ffb6cf; }
     #memoCount { text-align: right; font-size: 0.8em; color: #bbb; margin-top: 0.2em; }
     h2 { font-size: 1.05em; color: #888; margin: 1.6em 0 0.6em 0; display: flex; justify-content: space-between; align-items: center; }
-    #exportCsv {
+    #historyActions { display: flex; gap: 0.5em; }
+    #exportCsv, #importCsv {
       font-family: inherit; font-size: 0.8em; border: none; background: #eaf1ff; color: #4a7dd9;
-      border-radius: 14px; padding: 0.5em 0.9em; cursor: pointer;
+      border-radius: 14px; padding: 0.5em 0.9em; cursor: pointer; white-space: nowrap;
     }
+    #importCsv { background: #eafff1; color: #2fa365; }
+    #modalOverlay {
+      display: none; position: fixed; inset: 0; background: #0006; align-items: center; justify-content: center;
+      padding: 1em; z-index: 10; box-sizing: border-box;
+    }
+    #modalOverlay.open { display: flex; }
+    #modalBox {
+      background: #fffdfb; border-radius: 20px; padding: 1.6em 1.4em; max-width: 360px; width: 100%;
+      box-shadow: 0 8px 32px #0003; text-align: center;
+    }
+    #modalBox p { font-size: 0.95em; color: #555; line-height: 1.6; white-space: pre-line; }
+    #modalBox .modal-btn {
+      display: block; width: 100%; box-sizing: border-box; font-family: inherit; font-size: 1em; font-weight: 700;
+      border: none; border-radius: 16px; padding: 0.8em; margin-top: 0.7em; cursor: pointer;
+    }
+    #modalReplace { background: #ffe0ec; color: #d94f7c; }
+    #modalMerge { background: #eaf1ff; color: #4a7dd9; }
+    #modalCancel { background: #f1f1f1; color: #888; }
     #history { list-style: none; margin: 0; padding: 0; }
     #history li { display: flex; justify-content: space-between; align-items: center; padding: 0.6em 0.3em; border-bottom: 2px dotted #ffe0ec; font-size: 0.95em; gap: 0.5em; }
     #history li .date { color: #777; white-space: nowrap; }
@@ -101,8 +120,22 @@
       <input type="text" id="memoInput" maxlength="30" placeholder="れい：あたらしいハブラシにした！">
       <div id="memoCount">0/30</div>
     </div>
-    <h2>直近の記録 <button id="exportCsv">📄 CSVエクスポート</button></h2>
+    <h2>直近の記録
+      <span id="historyActions">
+        <button id="exportCsv">📄 エクスポート</button>
+        <button id="importCsv">📥 インポート</button>
+      </span>
+    </h2>
+    <input type="file" id="importFile" accept=".csv,text/csv" style="display:none;">
     <ul id="history"></ul>
+  </div>
+  <div id="modalOverlay">
+    <div id="modalBox">
+      <p>取り込み方法を選んでね📥<br>「洗替」は今のデータを全部消してCSVの内容に置き換えるよ。<br>「上書き」はCSVにある日付だけ更新して、他の記録はそのまま残すよ。</p>
+      <button class="modal-btn" id="modalReplace">🧼 洗替（全部おきかえ）</button>
+      <button class="modal-btn" id="modalMerge">✏️ 上書き（同じ日付だけ更新）</button>
+      <button class="modal-btn" id="modalCancel">キャンセル</button>
+    </div>
   </div>
   <script src="main.js"></script>
 </body>
