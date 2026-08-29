@@ -57,11 +57,11 @@
     }
     #memoInput:focus { outline: none; border-color: #ffb6cf; }
     #memoCount { text-align: right; font-size: 0.8em; color: #bbb; margin-top: 0.2em; }
-    h2 { font-size: 1.05em; color: #888; margin: 1.6em 0 0.6em 0; display: flex; justify-content: space-between; align-items: center; }
-    #historyActions { display: flex; gap: 0.5em; }
+    h2 { font-size: 1.05em; color: #888; margin: 1.6em 0 0.6em 0; }
+    #historyActions { display: flex; gap: 0.5em; margin-bottom: 1.2em; flex-wrap: wrap; }
     #exportCsv, #importCsv {
-      font-family: inherit; font-size: 0.8em; border: none; background: #eaf1ff; color: #4a7dd9;
-      border-radius: 14px; padding: 0.5em 0.9em; cursor: pointer; white-space: nowrap;
+      flex: 1; min-width: 9em; font-family: inherit; font-size: 0.85em; border: none; background: #eaf1ff; color: #4a7dd9;
+      border-radius: 14px; padding: 0.7em 0.6em; cursor: pointer;
     }
     #importCsv { background: #eafff1; color: #2fa365; }
     #modalOverlay {
@@ -120,13 +120,12 @@
       <input type="text" id="memoInput" maxlength="30" placeholder="れい：あたらしいハブラシにした！">
       <div id="memoCount">0/30</div>
     </div>
-    <h2>直近の記録
-      <span id="historyActions">
-        <button id="exportCsv">📄 エクスポート</button>
-        <button id="importCsv">📥 インポート</button>
-      </span>
-    </h2>
+    <div id="historyActions">
+      <button id="exportCsv">📄 記録する</button>
+      <button id="importCsv">📥 記録をよむ</button>
+    </div>
     <input type="file" id="importFile" accept=".csv,text/csv" style="display:none;">
+    <h2>直近の記録</h2>
     <ul id="history"></ul>
   </div>
   <div id="modalOverlay">
