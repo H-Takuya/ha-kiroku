@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>はみがき記録</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Yusei+Magic&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      background: linear-gradient(160deg, #fff2f8 0%, #eef7ff 100%);
+      color: #444; font-family: 'Yusei Magic', 'Segoe UI', sans-serif; margin: 0; padding: 0;
+    }
+    #app { max-width: 480px; margin: 0 auto; background: #fffdfb; border-radius: 28px; box-shadow: 0 8px 32px #0002; padding: 2em 1.2em 1.5em 1.2em; min-height: 100vh; box-sizing: border-box; }
+    #homeLink { display: inline-block; color: #4fc3d9; text-decoration: none; font-size: 0.9em; margin-bottom: 0.4em; }
+    h1 { text-align: center; color: #ff7aa8; margin-bottom: 0.2em; font-size: 1.6em; letter-spacing: 0.03em; text-shadow: 0 2px 0 #ffe0ec; }
+    #warning {
+      display: none; text-align: center; background: #fff4d6; color: #a56b00; border: 2px dashed #ffcc4d;
+      border-radius: 16px; padding: 0.8em 0.9em; margin: 0.8em 0 1.2em 0; font-size: 0.95em; line-height: 1.5;
+    }
+    #dateNav { display: flex; align-items: center; justify-content: center; gap: 1em; margin-bottom: 0.4em; }
+    #dateNav button {
+      width: 2.5em; height: 2.5em; border-radius: 50%; border: none; background: #ffe0ec;
+      color: #ff7aa8; font-size: 1.2em; font-weight: 700; cursor: pointer; box-shadow: 0 2px 6px #0001;
+    }
+    #dateNav button:disabled { color: #ddd; background: #f3f3f3; cursor: default; box-shadow: none; }
+    #dateLabel { min-width: 8em; text-align: center; font-size: 1.05em; font-weight: 700; }
+    #dateLabel.is-today { color: #4fc3d9; }
+    #todayLink { text-align: center; margin-bottom: 1.2em; }
+    #todayLink button { border: none; background: none; color: #4fc3d9; font-size: 0.85em; text-decoration: underline; cursor: pointer; }
+    #streaks { display: flex; gap: 0.8em; justify-content: center; margin-bottom: 1.4em; flex-wrap: wrap; }
+    #streaks .streak-badge {
+      font-size: 1em; font-weight: 700; color: #ff9c3f; background: #fff4e6; border-radius: 20px;
+      padding: 0.5em 1em;
+    }
+    #slots { display: flex; gap: 0.9em; justify-content: center; margin-bottom: 1.6em; }
+    .slot-btn {
+      flex: 1; max-width: 150px; padding: 1.2em 0.3em 1em; border-radius: 24px; border: 3px solid #e3e3e3;
+      background: #f4f4f4; color: #aaa; font-size: 1.05em; font-weight: 700; cursor: pointer; font-family: inherit;
+      transition: transform 0.15s, background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s;
+    }
+    .slot-btn .emoji-circle {
+      position: relative; display: flex; align-items: center; justify-content: center; width: 3.2em; height: 3.2em; margin: 0 auto 0.4em;
+      border-radius: 50%; background: #e6e6e6; font-size: 1.7em; filter: grayscale(70%); opacity: 0.6;
+      transition: background 0.2s, transform 0.2s, filter 0.2s, opacity 0.2s;
+    }
+    .slot-btn .check-badge {
+      position: absolute; top: -4px; right: -4px; width: 1.4em; height: 1.4em; border-radius: 50%;
+      background: #34c759; color: #fff; font-size: 0.7em; display: flex; align-items: center; justify-content: center;
+      opacity: 0; transform: scale(0.4); transition: opacity 0.15s, transform 0.15s; box-shadow: 0 2px 4px #0002;
+    }
+    .slot-btn .slot-status { display: block; margin-top: 0.5em; font-size: 0.78em; font-weight: 700; color: #bbb; letter-spacing: 0.03em; }
+    .slot-btn[data-slot="floss"] .check-badge { background: #2f7fe0; }
+    .slot-btn.done { box-shadow: 0 4px 10px #0001; }
+    .slot-btn.done .emoji-circle { filter: none; opacity: 1; transform: scale(1.12) rotate(-6deg); }
+    .slot-btn.done .check-badge { opacity: 1; transform: scale(1); }
+    .slot-btn[data-slot="brush"].done { background: #e3fbf0; border-color: #34c759; color: #1a8a3d; }
+    .slot-btn[data-slot="brush"].done .emoji-circle { background: #c8f4d9; }
+    .slot-btn[data-slot="floss"].done { background: #eaf1ff; border-color: #2f7fe0; color: #1c5fae; }
+    .slot-btn[data-slot="floss"].done .emoji-circle { background: #cfe3ff; }
+    .slot-btn:active { transform: scale(0.95); }
+    #complete { text-align: center; color: #34c77b; font-weight: 700; margin-bottom: 1em; min-height: 1.4em; }
+    #memoSection { margin: 0 0 1.6em 0; }
+    #memoSection label { display: block; font-size: 0.9em; color: #888; margin-bottom: 0.4em; }
+    #memoInput {
+      width: 100%; box-sizing: border-box; padding: 0.7em 0.9em; border-radius: 14px; border: 2px solid #ffe0ec;
+      font-family: inherit; font-size: 1em; color: #444; background: #fffaf9;
+    }
+    #memoInput:focus { outline: none; border-color: #ffb6cf; }
+    #memoCount { text-align: right; font-size: 0.8em; color: #bbb; margin-top: 0.2em; }
+    h2 { font-size: 1.05em; color: #888; margin: 1.6em 0 0.6em 0; }
+    #historyActions { display: flex; gap: 0.5em; margin-bottom: 1.2em; flex-wrap: wrap; }
+    #exportCsv, #importCsv {
+      flex: 1; min-width: 9em; font-family: inherit; font-size: 0.85em; border: none; background: #eaf1ff; color: #4a7dd9;
+      border-radius: 14px; padding: 0.7em 0.6em; cursor: pointer;
+    }
+    #importCsv { background: #eafff1; color: #2fa365; }
+    #modalOverlay {
+      display: none; position: fixed; inset: 0; background: #0006; align-items: center; justify-content: center;
+      padding: 1em; z-index: 10; box-sizing: border-box;
+    }
+    #modalOverlay.open { display: flex; }
+    #modalBox {
+      background: #fffdfb; border-radius: 20px; padding: 1.6em 1.4em; max-width: 360px; width: 100%;
+      box-shadow: 0 8px 32px #0003; text-align: center;
+    }
+    #modalBox p { font-size: 0.95em; color: #555; line-height: 1.6; white-space: pre-line; }
+    #modalBox .modal-btn {
+      display: block; width: 100%; box-sizing: border-box; font-family: inherit; font-size: 1em; font-weight: 700;
+      border: none; border-radius: 16px; padding: 0.8em; margin-top: 0.7em; cursor: pointer;
+    }
+    #modalReplace { background: #ffe0ec; color: #d94f7c; }
+    #modalMerge { background: #eaf1ff; color: #4a7dd9; }
+    #modalCancel { background: #f1f1f1; color: #888; }
+    #history { list-style: none; margin: 0; padding: 0; }
+    #history li { display: flex; justify-content: space-between; align-items: center; padding: 0.6em 0.3em; border-bottom: 2px dotted #ffe0ec; font-size: 0.95em; gap: 0.5em; }
+    #history li .date { color: #777; white-space: nowrap; }
+    #history li .date.today { color: #4fc3d9; font-weight: 700; }
+    #history li .memo { flex: 1; color: #aa88a8; font-size: 0.85em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #history li .marks { white-space: nowrap; }
+    #history li .marks span { margin-left: 0.4em; opacity: 0.2; font-size: 1.2em; }
+    #history li .marks span.on { opacity: 1; }
+    #empty { text-align: center; color: #bbb; padding: 1em 0; }
+    @media (max-width: 600px) {
+      #app { max-width: 100vw; border-radius: 0; padding: 1.4em 0.6em 1.4em 0.6em; }
+      h1 { font-size: 1.3em; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <a id="homeLink" href="../../">‹ ホーム</a>
+    <h1>🦷✨ はみがき記録 ✨🦷</h1>
+    <div id="dateNav">
+      <button id="prevDay" aria-label="前の日">&lt;</button>
+      <span id="dateLabel"></span>
+      <button id="nextDay" aria-label="次の日">&gt;</button>
+    </div>
+    <div id="todayLink"><button id="gotoToday">今日に戻る</button></div>
+    <div id="warning"></div>
+    <div id="streaks">
+      <span class="streak-badge" id="streakBrush"></span>
+      <span class="streak-badge" id="streakFloss"></span>
+    </div>
+    <div id="slots">
+      <button class="slot-btn" data-slot="brush">
+        <span class="emoji-circle">🪥<span class="check-badge">✔</span></span>
+        はみがき
+        <span class="slot-status"></span>
+      </button>
+      <button class="slot-btn" data-slot="floss">
+        <span class="emoji-circle">🧵<span class="check-badge">✔</span></span>
+        デンタルフロス
+        <span class="slot-status"></span>
+      </button>
+    </div>
+    <div id="complete"></div>
+    <div id="memoSection">
+      <label for="memoInput">📝 その日のメモ（30文字まで）</label>
+      <input type="text" id="memoInput" maxlength="30" placeholder="れい：あたらしいハブラシにした！">
+      <div id="memoCount">0/30</div>
+    </div>
+    <div id="historyActions">
+      <button id="exportCsv">📄 記録する</button>
+      <button id="importCsv">📥 記録をよむ</button>
+    </div>
+    <input type="file" id="importFile" accept=".csv,text/csv" style="display:none;">
+    <h2>直近の記録</h2>
+    <ul id="history"></ul>
+  </div>
+  <div id="modalOverlay">
+    <div id="modalBox">
+      <p>取り込み方法を選んでね📥<br>「洗替」は今のデータを全部消してCSVの内容に置き換えるよ。<br>「上書き」はCSVにある日付だけ更新して、他の記録はそのまま残すよ。</p>
+      <button class="modal-btn" id="modalReplace">🧼 洗替（全部おきかえ）</button>
+      <button class="modal-btn" id="modalMerge">✏️ 上書き（同じ日付だけ更新）</button>
+      <button class="modal-btn" id="modalCancel">キャンセル</button>
+    </div>
+  </div>
+  <script src="main.js"></script>
+</body>
+</html>
