@@ -62,7 +62,7 @@ function render() {
   const selectedData = data[selectedDate] || {};
 
   const dateLabel = document.getElementById('dateLabel');
-  dateLabel.textContent = isToday ? `今日 ${formatDateLabel(selectedDate)}` : formatDateLabel(selectedDate);
+  dateLabel.textContent = isToday ? `きょう ${formatDateLabel(selectedDate)}` : formatDateLabel(selectedDate);
   dateLabel.classList.toggle('is-today', isToday);
   document.getElementById('nextDay').disabled = selectedDate >= today;
   document.getElementById('todayLink').style.visibility = isToday ? 'hidden' : 'visible';
@@ -73,7 +73,7 @@ function render() {
   const flossedOn = offset => !!(data[todayStr(offset)] && data[todayStr(offset)].floss);
   const hasPastRecord = Object.keys(data).some(d => d < today && hasAnyRecord(data[d]));
   if (isToday && hasPastRecord && !flossedOn(0) && !flossedOn(-1) && !flossedOn(-2)) {
-    warningEl.textContent = '⚠️ デンタルフロスが2日間ないみたい…！ 🥺 そろそろやってみよう！';
+    warningEl.textContent = '🥺 きのうも おとといも フロスを してないよ… きょうは やってみよう！';
     warningEl.style.display = 'block';
   } else {
     warningEl.style.display = 'none';
@@ -81,8 +81,8 @@ function render() {
 
   const brushStreak = computeStreak(data, 'brush');
   const flossStreak = computeStreak(data, 'floss');
-  document.getElementById('streakBrush').textContent = brushStreak > 0 ? `🪥 ${brushStreak}日連続！` : '🪥 まずは1回！';
-  document.getElementById('streakFloss').textContent = flossStreak > 0 ? `🧵 ${flossStreak}日連続！` : '🧵 まずは1回！';
+  document.getElementById('streakBrush').textContent = brushStreak > 0 ? `🪥 ${brushStreak}にち れんぞく` : '🪥 まずは 1かい！';
+  document.getElementById('streakFloss').textContent = flossStreak > 0 ? `🧵 ${flossStreak}にち れんぞく` : '🧵 まずは 1かい！';
 
   document.querySelectorAll('.slot-btn').forEach(btn => {
     const slot = btn.dataset.slot;
@@ -123,67 +123,99 @@ function render() {
     rendered++;
   }
   if (rendered === 0) {
-    historyEl.innerHTML = '<div id="empty">まだ記録がありません</div>';
+    historyEl.innerHTML = '<div id="empty">まだ きろくが ないよ</div>';
   }
 
   renderGame(data, today);
 }
 
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text != null) node.textContent = text;
+  return node;
+}
+
 function renderGame(data, today) {
   const game = Game.computeGame(data, today);
+  const equippedItem = key => {
+    const slot = Game.EQUIP_SLOTS.find(s => s.key === key);
+    return game.equipped[key] >= 0 ? slot.items[game.equipped[key]] : null;
+  };
 
-  document.getElementById('heroLevel').textContent = `${game.heroName}  Lv ${game.level}`;
-  document.getElementById('heroStats').textContent =
-    `HP ${game.stats.hp}　こうげき ${game.stats.atk}　しゅび ${game.stats.def}`;
+  // ヒーロー：つけている きせかえを 絵文字で まわりに ならべる
+  const avatarParts = { avHat: 'shield', avHand: 'weapon', avBody: 'armor', avCharm: 'accessory' };
+  Object.keys(avatarParts).forEach(id => {
+    const it = equippedItem(avatarParts[id]);
+    document.getElementById(id).textContent = it ? it.emoji : '';
+  });
+  document.getElementById('heroName').textContent = game.heroName;
+  document.getElementById('heroLevel').textContent = `レベル ${game.level}`;
+  document.getElementById('heroPower').textContent = `💪 パワー ${game.power}`;
   document.getElementById('xpBar').style.width = `${Math.round(game.xpProgress * 100)}%`;
   document.getElementById('xpNext').textContent =
-    game.level >= Game.MAX_LEVEL ? 'さいだいレベル！' : `つぎの レベルまで ${game.xpToNext}`;
+    game.level >= Game.MAX_LEVEL ? 'さいこう レベル！' : `つぎの レベルまで あと ${game.xpToNext}`;
 
   const equipEl = document.getElementById('heroEquip');
   equipEl.innerHTML = '';
   Game.EQUIP_SLOTS.forEach(slot => {
-    const tier = game.equipped[slot.key];
-    const li = document.createElement('li');
-    li.textContent = `${slot.label}：${tier >= 0 ? slot.items[tier] : 'なし'}`;
-    equipEl.appendChild(li);
+    const it = equippedItem(slot.key);
+    equipEl.appendChild(el('span', 'equip-chip' + (it ? '' : ' empty'), it ? `${it.emoji} ${it.name}` : `${slot.label}：まだ ない`));
   });
 
+  // エリアと ボスまでの すすみぐあい（ドットで みせる）
   const area = game.area;
   const loopLabel = game.loop > 0 ? `（${game.loop + 1}しゅうめ）` : '';
-  document.getElementById('areaInfo').textContent = game.kills >= area.kills
-    ? `📍 ${area.name}${loopLabel}　👑 ボス ${area.boss}に ちょうせん中`
-    : `📍 ${area.name}${loopLabel}　ボスまで あと ${area.kills - game.kills}たい`;
+  document.getElementById('areaName').textContent = `📍 ${area.name}${loopLabel}`;
+  const dotsEl = document.getElementById('areaDots');
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < area.kills; i++) dotsEl.appendChild(el('span', 'dot' + (i < game.kills ? ' on' : '')));
+  const bossReady = game.kills >= area.kills;
+  dotsEl.appendChild(el('span', 'dot-boss' + (bossReady ? ' on' : ''), area.boss.emoji));
+  document.getElementById('areaHint').textContent = bossReady
+    ? `ボスの ${area.boss.name}と しょうぶ ちゅう！`
+    : `あと ${area.kills - game.kills}ひき ピカピカに すると ボスが でてくるよ`;
 
-  const logEl = document.getElementById('battleLog');
+  const logEl = document.getElementById('battleLogBody');
   logEl.innerHTML = '';
   const day = game.days[selectedDate];
   const lines = day ? day.lines
-    : selectedDate === today ? ['はみがきを すると ぼうけんが はじまる！']
-    : ['この日は ぼうけんに でなかった。'];
-  lines.forEach(text => {
-    const p = document.createElement('p');
-    p.textContent = text;
-    logEl.appendChild(p);
-  });
+    : selectedDate === today ? ['はみがきを すると ぼうけんが はじまるよ！']
+    : ['この日は ぼうけんに いかなかったよ。'];
+  lines.forEach(text => logEl.appendChild(el('p', null, text)));
 
+  // きせかえ ずかん
   document.getElementById('zukanCount').textContent = `${game.collectionCount}/${game.collectionTotal}`;
   const zukanEl = document.getElementById('zukanList');
   zukanEl.innerHTML = '';
   Game.EQUIP_SLOTS.forEach(slot => {
-    const row = document.createElement('div');
-    row.className = 'zukan-row';
-    const head = document.createElement('div');
-    head.className = 'zukan-head';
-    head.textContent = `${slot.label}（${Game.STAT_LABEL[slot.stat]}）`;
-    row.appendChild(head);
-    slot.items.forEach((name, tier) => {
+    zukanEl.appendChild(el('div', 'zukan-head', slot.label));
+    const grid = el('div', 'zukan-grid');
+    slot.items.forEach((it, tier) => {
       const owned = !!game.collection[`${slot.key}:${tier}`];
-      const span = document.createElement('span');
-      span.className = 'zukan-item' + (owned ? ' owned' : '') + (game.equipped[slot.key] === tier ? ' equipped' : '');
-      span.textContent = owned ? `${name} +${Game.equipValue(slot, tier)}` : '？？？';
-      row.appendChild(span);
+      const cell = el('div', 'zukan-cell' + (owned ? ' owned' : '') + (game.equipped[slot.key] === tier ? ' equipped' : ''));
+      cell.appendChild(el('span', 'zukan-emoji', owned ? it.emoji : '？'));
+      cell.appendChild(el('span', 'zukan-name', owned ? it.name : '？？？'));
+      grid.appendChild(cell);
     });
-    zukanEl.appendChild(row);
+    zukanEl.appendChild(grid);
+  });
+
+  // なかま ずかん
+  document.getElementById('friendsCount').textContent = `${game.friendsCount}/${game.friendsTotal}`;
+  const friendsEl = document.getElementById('friendsList');
+  friendsEl.innerHTML = '';
+  Game.AREAS.forEach(a => {
+    friendsEl.appendChild(el('div', 'zukan-head', a.name));
+    const grid = el('div', 'zukan-grid');
+    a.monsters.concat([a.boss]).forEach(m => {
+      const met = !!game.friends[m.name];
+      const cell = el('div', 'zukan-cell' + (met ? ' owned' : '') + (m === a.boss ? ' boss' : ''));
+      cell.appendChild(el('span', 'zukan-emoji', met ? m.emoji : '？'));
+      cell.appendChild(el('span', 'zukan-name', met ? m.name : '？？？'));
+      grid.appendChild(cell);
+    });
+    friendsEl.appendChild(grid);
   });
 
   return game;
@@ -194,11 +226,7 @@ let popupTimer = null;
 function showAdventurePopup(lines) {
   const popup = document.getElementById('advPopup');
   popup.innerHTML = '';
-  lines.forEach(text => {
-    const p = document.createElement('p');
-    p.textContent = text;
-    popup.appendChild(p);
-  });
+  lines.forEach(text => popup.appendChild(el('p', null, text)));
   popup.classList.add('open');
   clearTimeout(popupTimer);
   popupTimer = setTimeout(() => popup.classList.remove('open'), 6000);

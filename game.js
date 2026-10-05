@@ -1,4 +1,5 @@
-// ゲーム要素（ドラクエ風）
+// ゲーム要素（子ども向けの冒険。小学校低学年が読めるよう、画面に出る文はひらがな・カタカナだけにする）
+// むしばきんを「やっつける」のではなく「ピカピカにすると なかまになる」。負けても罰はない。
 // ゲーム状態は保存せず、記録データ（日付 → { brush, floss }）から毎回計算する。
 // そのため CSV の書き出し・取り込みだけでレベル・装備・冒険の進み具合も復元される。
 // 乱数は日付から決まるので、同じ記録なら何度計算しても同じ結果になる（引き直し不可）。
@@ -7,7 +8,7 @@
 
   const XP = { brush: 10, floss: 15, combo: 5 };
   const MAX_LEVEL = 99;
-  const HERO_NAME = 'ゆうしゃ';
+  const HERO_NAME = 'はみがきヒーロー';
 
   // Lv L に必要な累計経験値。序盤は早く、後半ほどゆっくり上がる
   function xpForLevel(level) {
@@ -58,36 +59,40 @@
     return formatDate(d);
   }
 
-  // ---- そうび ----
-  // 各部位 12段階。段階が上がるほど強い。value = base + step * 段階
+  // ---- きせかえ（そうび） ----
+  // 各部位 12段階。段階が上がるほど強い。value = base + step * 段階（数値は画面に出さず、パワーにまとめる）
+  const item = (name, emoji) => ({ name, emoji });
   const EQUIP_SLOTS = [
     {
-      key: 'weapon', label: 'ぶき', stat: 'atk', base: 3, step: 4,
-      items: ['つまようじ', 'わりばし', 'ハブラシのけん', 'かためハブラシ', 'フロスのムチ', 'タフトブラシのやり',
-        'しかんブラシのツメ', 'でんどうハブラシ', 'ウォーターピックのつえ', 'ちょうおんぱブラシ', 'はいしゃさんのドリル', 'でんせつのハブラシ'],
+      key: 'weapon', label: 'もちもの', stat: 'atk', base: 3, step: 4,
+      items: [item('ちいさな ハブラシ', '🪥'), item('あわあわ ハブラシ', '🫧'), item('フロスの ロープ', '🧵'), item('ミントの ステッキ', '🌿'),
+        item('ほしの ステッキ', '🌟'), item('にじいろ ハブラシ', '🌈'), item('かみなり ハブラシ', '⚡'), item('ほのおの ハブラシ', '🔥'),
+        item('ロケット ハブラシ', '🚀'), item('まほうの つえ', '🪄'), item('ドラゴン ハブラシ', '🐉'), item('でんせつの ハブラシ', '🔱')],
     },
     {
-      key: 'armor', label: 'よろい', stat: 'def', base: 2, step: 3,
-      items: ['よだれかけ', 'ぬののふく', 'うがいのエプロン', 'ミントのころも', 'キシリトールメイル', 'フッそのコート',
-        'カルシウムのよろい', 'エナメルのよろい', 'シーラントアーマー', 'セラミックのよろい', 'ジルコニアのよろい', 'えいきゅうしのよろい'],
+      key: 'armor', label: 'ふく', stat: 'def', base: 2, step: 3,
+      items: [item('Tシャツ', '👕'), item('パーカー', '🧥'), item('みずたま ワンピース', '👗'), item('しずくの マント', '💧'),
+        item('ヒーロー スーツ', '🦸'), item('にんじゃの ふく', '🥷'), item('ロボ スーツ', '🤖'), item('うちゅうふく', '🪐'),
+        item('こおりの マント', '❄️'), item('おうさまの マント', '🤴'), item('きんの よろい', '✨'), item('でんせつの マント', '🌠')],
     },
     {
-      key: 'shield', label: 'たて', stat: 'def', base: 1, step: 2,
-      items: ['コップのふた', 'うがいコップ', 'ガーゼのたて', 'マウスピースのたて', 'ハミガキこのたて', 'だえきのたて',
-        'フッそのたて', 'カルシウムのたて', 'エナメルのたて', 'シーラントのたて', 'セラミックのたて', 'しろいはのたて'],
+      key: 'shield', label: 'ぼうし', stat: 'def', base: 1, step: 2,
+      items: [item('キャップ', '🧢'), item('むぎわらぼうし', '👒'), item('ねこみみ', '🐱'), item('うさみみ', '🐰'),
+        item('ゴーグル', '🥽'), item('まほうの ぼうし', '🎩'), item('くまの ぼうし', '🐻'), item('ヘルメット', '⛑️'),
+        item('ライオンの たてがみ', '🦁'), item('ユニコーンの つの', '🦄'), item('ドラゴンの かぶと', '🐲'), item('でんせつの かんむり', '👑')],
     },
     {
-      key: 'accessory', label: 'アクセ', stat: 'hp', base: 5, step: 6,
-      items: ['わゴム', 'ミントガム', 'キシリトールガム', 'リップクリーム', 'デンタルミラー', 'したブラシのおまもり',
-        'フッそのゆびわ', 'しんさつけん', 'ていきけんしんのあかし', 'ハミガキマイスターのバッジ', 'はのようせいのはね', '8020のメダル'],
+      key: 'accessory', label: 'キラキラ', stat: 'hp', base: 5, step: 6,
+      items: [item('どんぐり', '🌰'), item('クローバー', '🍀'), item('リボン', '🎀'), item('すず', '🔔'),
+        item('ビーだま', '🔮'), item('ハートの ペンダント', '💖'), item('さくらの はなびら', '🌸'), item('にじの はね', '🪽'),
+        item('ようせいの こな', '🧚'), item('ダイヤ', '💎'), item('おひさまの メダル', '🌞'), item('でんせつの メダル', '🏅')],
     },
   ];
   const MAX_TIER = 11;
-  const STAT_LABEL = { atk: 'こうげき', def: 'しゅび', hp: 'HP' };
 
   // たからばこのランク。ボーナスぶん強い段階のそうびが出る
   const CHESTS = [
-    { name: 'どうの たからばこ', tierBonus: 0 },
+    { name: 'たからばこ', tierBonus: 0 },
     { name: 'ぎんの たからばこ', tierBonus: 1 },
     { name: 'きんの たからばこ', tierBonus: 2 },
     { name: 'にじいろの たからばこ', tierBonus: 4 },
@@ -115,17 +120,26 @@
     return weights.length - 1;
   }
 
-  // ---- ぼうけんのエリアとモンスター ----
-  // power からステータスを決める。kills はボスに挑むまでに倒す数
+  // ---- ぼうけんの エリアと むしばきん ----
+  // power からステータスを決める。kills はボスに会うまでに ピカピカにする数
+  const mon = (name, emoji) => ({ name, emoji });
   const AREAS = [
-    { name: 'まえばの そうげん', kills: 5, power: 1, monsters: ['ムシバキン', 'アメスライム', 'ネバネバン'], boss: 'プラークスライム' },
-    { name: 'いときりばの もり', kills: 7, power: 3, monsters: ['チョコゴースト', 'ジュースこぞう', 'カスバチ'], boss: 'シコウの まじゅつし' },
-    { name: 'おくばの どうくつ', kills: 10, power: 5, monsters: ['ポテチバット', 'グミリザード', 'キャラメルゴーレム'], boss: 'シセキの きょじん' },
-    { name: 'はぐきの ぬま', kills: 12, power: 7, monsters: ['ハレハレン', 'ジュクジュクン', 'ハグキュラ'], boss: 'シニクエンの りゅう' },
-    { name: 'したの さばく', kills: 15, power: 9, monsters: ['シタゴケ', 'ニンニクマン', 'ネギドラゴン'], boss: 'コウシュウの まおうぐん' },
-    { name: 'だえきの うみ', kills: 18, power: 11, monsters: ['サンセイダコ', 'クエンサンクラゲ', 'コーラクラーケン'], boss: 'ペーハーの ぬし' },
-    { name: 'しずいの とう', kills: 22, power: 13, monsters: ['シミシミ', 'ズキズキン', 'チカクカビン'], boss: 'しずいえんの あくま' },
-    { name: 'ムシバじょう', kills: 26, power: 15, monsters: ['ミュータンスナイト', 'ダークプラーク', 'エリートムシバキン'], boss: 'まおう ムシバーン' },
+    { name: 'まえばの はらっぱ', kills: 5, power: 1,
+      monsters: [mon('チョコきん', '🍫'), mon('アメきん', '🍬'), mon('ジュースきん', '🧃')], boss: mon('ベタベタ キング', '🤴') },
+    { name: 'キバの もり', kills: 7, power: 3,
+      monsters: [mon('グミきん', '🐻'), mon('ポテチきん', '🥔'), mon('ドーナツきん', '🍩')], boss: mon('ネバネバ まじょ', '🧙') },
+    { name: 'おくばの どうくつ', kills: 10, power: 5,
+      monsters: [mon('キャラメルきん', '🍮'), mon('ガムきん', '🫧'), mon('クッキーきん', '🍪')], boss: mon('カチコチ ゴーレム', '🗿') },
+    { name: 'はぐきの ぬま', kills: 12, power: 7,
+      monsters: [mon('プクプクきん', '🐸'), mon('ムズムズきん', '🐛'), mon('ヒリヒリきん', '🌶️')], boss: mon('ブクブク ドラゴン', '🐊') },
+    { name: 'べろの さばく', kills: 15, power: 9,
+      monsters: [mon('ザラザラきん', '🌵'), mon('モヤモヤきん', '☁️'), mon('クンクンきん', '🧄')], boss: mon('モクモク おばけ', '👻') },
+    { name: 'つばの うみ', kills: 18, power: 11,
+      monsters: [mon('スッパきん', '🍋'), mon('シュワシュワきん', '🥤'), mon('アイスきん', '🍦')], boss: mon('スッパイ クラーケン', '🦑') },
+    { name: 'おくちの おしろの とう', kills: 22, power: 13,
+      monsters: [mon('ジンジンきん', '🦂'), mon('キーンきん', '🧊'), mon('ズキズキきん', '🦇')], boss: mon('いたいいたい デビル', '😈') },
+    { name: 'むしば じょう', kills: 26, power: 15,
+      monsters: [mon('むしば ナイト', '🦠'), mon('むしば まほうつかい', '🦹'), mon('ジャイアント むしばきん', '👾')], boss: mon('むしば だいおう', '🐲') },
   ];
   const LOOP_POWER = 4; // クリア後の2周目以降は敵が強くなる
   const BOSS_WOUND = 0.2; // ボスに負けるたびに次回のボスHPが 20% 減る（最大 70% 減）
@@ -147,7 +161,7 @@
     return Math.max(1, Math.round((atk - def / 2) * (0.85 + rand() * 0.3)));
   }
 
-  // 自動戦闘。ゆうしゃが先攻
+  // 自動戦闘。ヒーローが先攻
   function fight(hero, monster, rand) {
     let heroHp = hero.hp;
     let monsterHp = monster.hp;
@@ -191,6 +205,7 @@
       level: 1,
       equipped: { weapon: -1, armor: -1, shield: -1, accessory: -1 },
       collection: {}, // "slotKey:tier" → true
+      friends: {}, // ピカピカにして なかまになった むしばきんの なまえ → true
       areaIndex: 0,
       loop: 0,
       kills: 0,
@@ -215,12 +230,12 @@
       // 1. けいけんち
       const gain = (day.brush ? XP.brush : 0) + (day.floss ? XP.floss : 0) + (complete ? XP.combo : 0);
       state.xp += gain;
-      lines.push(`${gain}ポイントの けいけんちを かくとく！${complete ? '（コンボ +' + XP.combo + '）' : ''}`);
+      lines.push(`けいけんちを ${gain} もらった！${complete ? '（りょうほう できた ボーナス つき）' : ''}`);
       const newLevel = levelFromXp(state.xp);
       if (newLevel > state.level) {
         result.levelUp = { from: state.level, to: newLevel };
         state.level = newLevel;
-        lines.push(`★ レベルが ${newLevel}に あがった！`);
+        lines.push(`🎉 レベル ${newLevel}に なった！`);
       }
 
       // 2. たからばこ
@@ -231,55 +246,56 @@
         const slot = EQUIP_SLOTS[Math.floor(rand() * EQUIP_SLOTS.length)];
         const baseTier = Math.min(MAX_TIER, state.areaIndex + state.loop * 2);
         const tier = Math.max(0, Math.min(MAX_TIER, baseTier + chest.tierBonus - (rand() < 0.3 ? 1 : 0)));
-        const itemName = slot.items[tier];
+        const got = slot.items[tier];
         const isNew = !state.collection[`${slot.key}:${tier}`];
         state.collection[`${slot.key}:${tier}`] = true;
-        lines.push(`${chest.name}を あけた！ ${itemName}を てにいれた！${isNew ? ' 🆕' : ''}`);
+        lines.push(`🎁 ${chest.name}！ ${got.emoji}${got.name}を ゲット！${isNew ? ' 🆕' : ''}`);
         const equipped = tier > state.equipped[slot.key];
         if (equipped) {
           state.equipped[slot.key] = tier;
-          lines.push(`${itemName}を そうびした！（${STAT_LABEL[slot.stat]} +${equipValue(slot, tier)}）`);
+          lines.push(`さっそく ${got.name}を つけてみた！ パワー アップ！`);
         }
-        result.item = { slot: slot.key, tier, name: itemName, chest: chest.name, isNew, equipped };
+        result.item = { slot: slot.key, tier, name: got.name, emoji: got.emoji, chest: chest.name, isNew, equipped };
       }
 
       // 3. せんとう
       const area = AREAS[state.areaIndex];
       const isBoss = state.kills >= area.kills;
       const power = areaPower(state.areaIndex, state.loop);
-      const monsterName = isBoss ? area.boss : area.monsters[Math.floor(rand() * area.monsters.length)];
-      const monster = monsterStats(monsterName, power, isBoss, state.bossFails);
+      const foe = isBoss ? area.boss : area.monsters[Math.floor(rand() * area.monsters.length)];
+      const monster = monsterStats(foe.name, power, isBoss, state.bossFails);
       const hero = heroStats(state.level, state.equipped);
       const outcome = fight(hero, monster, rand);
-      lines.push(isBoss ? `👑 ボスの ${monster.name}が たちはだかった！` : `${monster.name}が あらわれた！`);
-      if (isBoss && state.bossFails > 0) lines.push(`${monster.name}には まえの たたかいの きずが のこっている！`);
-      if (outcome.critical) lines.push('かいしんの いちげき！');
+      lines.push(isBoss ? `‼️ ボスの ${foe.emoji}${foe.name}が でてきた！` : `${foe.emoji}${foe.name}が でてきた！`);
+      if (isBoss && state.bossFails > 0) lines.push(`${foe.name}は まえより つかれて いるみたい！`);
+      if (outcome.critical) lines.push('✨ スーパー ピカピカ アタック！');
       if (outcome.result === 'win') {
         state.wins++;
-        lines.push(`${state.heroName}は ${outcome.turns}ターンで ${monster.name}を やっつけた！`);
+        const isNewFriend = !state.friends[foe.name];
+        state.friends[foe.name] = true;
+        lines.push(`${foe.name}を ピカピカに した！ きれいに なって なかまに なったよ！${isNewFriend ? ' 🆕' : ''}`);
         if (isBoss) {
           state.bossWins++;
           state.bossFails = 0;
           state.kills = 0;
           if (state.areaIndex < AREAS.length - 1) {
             state.areaIndex++;
-            lines.push(`🗺️ ${AREAS[state.areaIndex].name}への みちが ひらけた！`);
+            lines.push(`🗺️ ${AREAS[state.areaIndex].name}へ いけるように なった！`);
           } else {
             state.areaIndex = 0;
             state.loop++;
-            lines.push(`🎊 まおうを たおし、くちの なかに へいわが おとずれた！ …しかし ムシバキンは ふたたび あらわれた！（${state.loop + 1}しゅうめ）`);
+            lines.push(`🎊 おくちの なかが ぜんぶ ピカピカに なった！ …でも また むしばきんが やってきた！（${state.loop + 1}しゅうめ）`);
           }
         } else {
           state.kills++;
-          if (state.kills >= area.kills) lines.push(`ボスの けはいが する…！`);
+          if (state.kills >= area.kills) lines.push('つぎは ボスが でてくるよ…！');
         }
-      } else if (outcome.result === 'lose') {
-        if (isBoss) state.bossFails++;
-        lines.push(`${state.heroName}は ちからつきた…　でも あしたは もっと つよく なれる！`);
       } else {
-        lines.push(`${monster.name}は にげだした！`);
+        // 負け・時間切れは子どもには同じに見せる。ボスは負けた回数ぶん次回が弱くなる
+        if (isBoss && outcome.result === 'lose') state.bossFails++;
+        lines.push(`${foe.name}は にげちゃった！ また あした がんばろう！`);
       }
-      result.battle = { monster: monster.name, isBoss, result: outcome.result };
+      result.battle = { monster: foe.name, emoji: foe.emoji, isBoss, result: outcome.result };
 
       state.days[date] = result;
       prevDate = date;
@@ -292,11 +308,14 @@
     state.area = AREAS[state.areaIndex];
     state.collectionCount = Object.keys(state.collection).length;
     state.collectionTotal = EQUIP_SLOTS.length * (MAX_TIER + 1);
+    state.friendsCount = Object.keys(state.friends).length;
+    state.friendsTotal = AREAS.reduce((n, a) => n + a.monsters.length + 1, 0);
+    state.power = state.stats.atk + state.stats.def + Math.floor(state.stats.hp / 4);
     return state;
   }
 
   const Game = {
-    XP, MAX_LEVEL, EQUIP_SLOTS, AREAS, CHESTS, STAT_LABEL,
+    XP, MAX_LEVEL, EQUIP_SLOTS, AREAS, CHESTS,
     xpForLevel, levelFromXp, heroStats, monsterStats, areaPower, fight, seededRandom, addDays, equipValue,
     computeGame,
   };
