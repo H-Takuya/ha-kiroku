@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Yusei+Magic&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Yusei+Magic&display=swap" rel="stylesheet">
   <style>
     html, body {
       background: linear-gradient(160deg, #fff2f8 0%, #eef7ff 100%);
@@ -101,6 +101,39 @@
     #history li .marks span { margin-left: 0.4em; opacity: 0.2; font-size: 1.2em; }
     #history li .marks span.on { opacity: 1; }
     #empty { text-align: center; color: #bbb; padding: 1em 0; }
+    /* ---- ぼうけん（ドラクエ風ウィンドウ） ---- */
+    .dq-window {
+      font-family: 'DotGothic16', monospace; background: #101028; color: #fff; border: 3px solid #fff;
+      outline: 3px solid #101028; border-radius: 10px; padding: 0.8em 1em; margin: 0.4em 3px 1.2em; line-height: 1.6;
+    }
+    #heroTop { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0.3em; }
+    #heroLevel { font-size: 1.15em; color: #ffe66d; }
+    #heroStats { font-size: 0.9em; margin: 0.2em 0; }
+    #xpWrap { background: #33335a; border-radius: 4px; height: 0.6em; overflow: hidden; margin: 0.3em 0 0.1em; }
+    #xpBar { background: linear-gradient(90deg, #7cf3a0, #4fc3d9); height: 100%; width: 0; transition: width 0.4s; }
+    #xpNext { font-size: 0.78em; color: #aab; text-align: right; }
+    #heroEquip { list-style: none; margin: 0.4em 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0 0.8em; font-size: 0.82em; }
+    #heroEquip li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #areaInfo { margin-top: 0.5em; font-size: 0.85em; color: #9fe3ff; }
+    #battleLog p { margin: 0; font-size: 0.9em; }
+    #battleLog p::before { content: '▶ '; color: #ffe66d; }
+    #zukan { margin-bottom: 1.2em; }
+    #zukan summary { cursor: pointer; color: #888; font-size: 1.05em; }
+    .zukan-row { margin: 0.6em 0; }
+    .zukan-head { font-size: 0.85em; color: #888; margin-bottom: 0.2em; }
+    .zukan-item {
+      display: inline-block; font-size: 0.78em; margin: 0.15em; padding: 0.2em 0.5em; border-radius: 8px;
+      background: #f1f1f1; color: #bbb;
+    }
+    .zukan-item.owned { background: #fff4e6; color: #a5641a; }
+    .zukan-item.equipped { background: #ffe66d; color: #6a4a00; font-weight: 700; }
+    #advPopup {
+      position: fixed; left: 50%; bottom: 1em; transform: translate(-50%, calc(100% + 2em)); visibility: hidden; width: calc(100% - 2em); max-width: 440px;
+      box-sizing: border-box; z-index: 20; margin: 0; transition: transform 0.3s, visibility 0.3s; cursor: pointer;
+    }
+    #advPopup.open { transform: translate(-50%, 0); visibility: visible; }
+    #advPopup p { margin: 0; font-size: 0.92em; }
+    #advPopup p::before { content: '▶ '; color: #ffe66d; }
     @media (max-width: 600px) {
       #app { max-width: 100vw; border-radius: 0; padding: 1.4em 0.6em 1.4em 0.6em; }
       h1 { font-size: 1.3em; }
@@ -117,6 +150,13 @@
     </div>
     <div id="todayLink"><button id="gotoToday">今日に戻る</button></div>
     <div id="warning"></div>
+    <div id="hero" class="dq-window">
+      <div id="heroTop"><span id="heroLevel"></span><span id="heroStats"></span></div>
+      <div id="xpWrap"><div id="xpBar"></div></div>
+      <div id="xpNext"></div>
+      <ul id="heroEquip"></ul>
+      <div id="areaInfo"></div>
+    </div>
     <div id="streaks">
       <span class="streak-badge" id="streakBrush"></span>
       <span class="streak-badge" id="streakFloss"></span>
@@ -134,27 +174,35 @@
       </button>
     </div>
     <div id="complete"></div>
+    <div id="battleLog" class="dq-window" aria-live="polite"></div>
     <div id="memoSection">
       <label for="memoInput">📝 その日のメモ（30文字まで）</label>
       <input type="text" id="memoInput" maxlength="30" placeholder="れい：あたらしいハブラシにした！">
       <div id="memoCount">0/30</div>
     </div>
     <div id="historyActions">
-      <button id="exportCsv">📄 記録する</button>
-      <button id="importCsv">📥 記録をよむ</button>
+      <button id="exportCsv">📤 書き出す</button>
+      <button id="importCsv">📥 読み込む</button>
     </div>
     <input type="file" id="importFile" accept=".csv,text/csv" style="display:none;">
+    <details id="zukan">
+      <summary>📖 そうび ずかん <span id="zukanCount"></span></summary>
+      <div id="zukanList"></div>
+    </details>
     <h2>直近の記録</h2>
     <ul id="history"></ul>
   </div>
   <div id="modalOverlay">
     <div id="modalBox">
+      <p id="modalSummary"></p>
       <p>取り込み方法を選んでね📥<br>「洗替」は今のデータを全部消してCSVの内容に置き換えるよ。<br>「上書き」はCSVにある日付だけ更新して、他の記録はそのまま残すよ。</p>
       <button class="modal-btn" id="modalReplace">🧼 洗替（全部おきかえ）</button>
       <button class="modal-btn" id="modalMerge">✏️ 上書き（同じ日付だけ更新）</button>
       <button class="modal-btn" id="modalCancel">キャンセル</button>
     </div>
   </div>
+  <div id="advPopup" class="dq-window" role="status"></div>
+  <script src="game.js"></script>
   <script src="main.js"></script>
 </body>
 </html>
