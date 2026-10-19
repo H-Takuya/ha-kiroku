@@ -145,42 +145,69 @@ function shortDateLabel(dateStr) {
   return `${m}/${d}`;
 }
 
+// SVG内の id がページ内で かさならないよう、さかなを かくたびに番号をふる（絵そのものは種類ごとに作りおき）
+let svgUid = 0;
+const artCache = {};
+function fishSvg(id) {
+  if (!artCache[id]) artCache[id] = FishArt.drawFish(Aquarium.byId[id], '__UID__');
+  return artCache[id].replace(/__UID__/g, String(++svgUid));
+}
+function plantSvg(id) {
+  if (!artCache[`plant:${id}`]) artCache[`plant:${id}`] = FishArt.drawPlant(id);
+  return artCache[`plant:${id}`];
+}
+
+const ZONE_LABEL = { top: 'みずの うえの ほう', mid: 'まんなか', bottom: 'そこの ほう' };
+
 // すいそうを 1つ えがく。mini は「これまでの すいそう」用の小さい版（うごかない・タップできない）
 function renderTank(container, month, mini) {
-  container.innerHTML = '';
   container.className = 'tank' + (mini ? ' mini' : '');
+  let html = FishArt.drawTankBackground(String(++svgUid));
   if (!mini) {
-    for (let i = 0; i < 6; i++) {
-      const bubble = el('span', 'bubble');
-      bubble.style.left = `${10 + i * 16}%`;
-      bubble.style.animationDelay = `${-i * 1.3}s`;
-      container.appendChild(bubble);
-    }
+    for (let i = 0; i < 6; i++) html += `<span class="bubble" style="left:${10 + i * 16}%;animation-delay:${-i * 1.3}s"></span>`;
   }
-  month.decos.forEach(d => {
-    const deco = el('span', 'deco', d.emoji);
-    deco.style.left = `${d.x}%`;
-    container.appendChild(deco);
+  // 水草は 大きいものを うしろに
+  month.decos.slice().sort((x, y) => y.size - x.size).forEach(d => {
+    html += `<span class="deco" style="left:${d.x}%;width:${d.size}em">${plantSvg(d.id)}</span>`;
   });
-  month.creatures.forEach(c => {
-    const wrap = el('span', 'creature' + (c.big ? ' big' : '') + (c.tier === 'superRare' ? ' shiny' : ''));
-    wrap.style.left = `${c.place.x}%`;
-    wrap.style.top = `${c.place.y}%`;
-    const body = el('span', 'swim', c.emoji);
-    if (!mini) {
-      body.style.setProperty('--range', `${c.place.range}px`);
-      body.style.animationDuration = `${c.place.swim}s`;
-      body.style.animationDelay = `${c.place.delay}s`;
-      wrap.addEventListener('click', () => {
-        document.getElementById('tankCaption').textContent = `${c.emoji} ${c.name}（${shortDateLabel(c.date)}に きたよ）`;
-      });
-    }
-    wrap.appendChild(body);
-    container.appendChild(wrap);
+  month.creatures.forEach((c, i) => {
+    const sp = Aquarium.byId[c.id];
+    const swim = mini ? '' : `--range:${c.place.range}px;animation-duration:${c.place.swim}s;animation-delay:${c.place.delay}s`;
+    html += `<span class="creature" data-i="${i}" style="left:${c.place.x}%;top:${c.place.y}%;width:${sp.size}em">`
+      + `<span class="swim" style="${swim}">${fishSvg(c.id)}</span></span>`;
   });
   if (!month.creatures.length && !month.decos.length && !mini) {
-    container.appendChild(el('div', 'tank-empty', 'はみがきを すると さかなが くるよ！'));
+    html += '<div class="tank-empty">はみがきを すると さかなが くるよ！</div>';
   }
+  container.innerHTML = html;
+  if (!mini) {
+    container.querySelectorAll('.creature').forEach(node => {
+      node.addEventListener('click', () => {
+        const c = month.creatures[Number(node.dataset.i)];
+        document.getElementById('tankCaption').textContent = `${c.name}（${shortDateLabel(c.date)}に きたよ）`;
+      });
+    });
+  }
+}
+
+function showSpeciesDetail(sp, firstDate) {
+  const box = document.getElementById('zukanDetail');
+  box.innerHTML = '';
+  const art = el('div', 'detail-art');
+  art.style.width = `${Math.min(sp.size, 3.2) * 4}em`;
+  art.innerHTML = fishSvg(sp.id);
+  box.appendChild(art);
+  box.appendChild(el('div', 'detail-name', sp.name));
+  box.appendChild(el('div', 'detail-sci', sp.sci));
+  const dl = el('dl');
+  [['ふるさと', sp.home], ['おおきさ', `やく ${sp.cm}センチ`], ['およぐ ところ', ZONE_LABEL[sp.zone]],
+    ['はじめて きた日', shortDateLabel(firstDate)]].forEach(([k, v]) => {
+    dl.appendChild(el('dt', null, k));
+    dl.appendChild(el('dd', null, v));
+  });
+  box.appendChild(dl);
+  box.appendChild(el('p', 'detail-note', sp.note));
+  box.style.display = '';
 }
 
 function renderAquarium(data, today) {
@@ -195,7 +222,7 @@ function renderAquarium(data, today) {
   document.getElementById('aqTotal').textContent = `これまでに きた いきもの ${aq.totalCreatures}ひき`;
   const next = aq.nextMilestone;
   document.getElementById('aqNext').textContent = next
-    ? `はみがきと フロス りょうほう あと ${next.remaining}にち つづけると とくべつな おきゃくさんが くるかも…？`
+    ? `はみがきと フロス りょうほう あと ${next.remaining}にち つづけると、とくべつな おきゃくさんが くるかも…？`
     : 'とくべつな おきゃくさんは ぜんぶ きたよ！ すごい！';
 
   const logEl = document.getElementById('dayLogBody');
@@ -220,24 +247,29 @@ function renderAquarium(data, today) {
     pastEl.appendChild(card);
   });
 
-  // いきもの ずかん
+  // さかな ずかん
   document.getElementById('zukanCount').textContent = `${aq.discoveredCount}/${aq.discoverableTotal}`;
   const zukanEl = document.getElementById('zukanList');
   zukanEl.innerHTML = '';
+  document.getElementById('zukanDetail').style.display = 'none';
   const groups = [
-    ['よく くる いきもの', Aquarium.FISH.common],
-    ['めずらしい いきもの', Aquarium.FISH.rare],
-    ['とっても めずらしい いきもの', Aquarium.FISH.superRare],
-    ['とくべつな おきゃくさん', Aquarium.MILESTONES],
+    ['よく くる さかな', Aquarium.FISH.common],
+    ['めずらしい さかな', Aquarium.FISH.rare],
+    ['とっても めずらしい さかな', Aquarium.FISH.superRare],
+    ['とくべつな おきゃくさん（れんぞくで くる）', Aquarium.MILESTONES],
   ];
   groups.forEach(([title, list]) => {
     zukanEl.appendChild(el('div', 'zukan-head', title));
     const grid = el('div', 'zukan-grid');
-    list.forEach(c => {
-      const first = aq.discovered[c.id];
-      const cell = el('div', 'zukan-cell' + (first ? ' owned' : ''));
-      cell.appendChild(el('span', 'zukan-emoji', first ? c.emoji : '？'));
-      cell.appendChild(el('span', 'zukan-name', first ? c.name : (c.days ? `${c.days}にちで…` : '？？？')));
+    list.forEach(sp => {
+      const first = aq.discovered[sp.id];
+      const cell = el(first ? 'button' : 'div', 'zukan-cell' + (first ? ' owned' : ''));
+      const art = el('span', 'zukan-art');
+      if (first) art.innerHTML = fishSvg(sp.id);
+      else art.textContent = '？';
+      cell.appendChild(art);
+      cell.appendChild(el('span', 'zukan-name', first ? sp.name : (sp.streak ? `${sp.streak}にち れんぞくで…` : '？？？')));
+      if (first) cell.addEventListener('click', () => showSpeciesDetail(sp, first));
       grid.appendChild(cell);
     });
     zukanEl.appendChild(grid);
@@ -246,10 +278,20 @@ function renderAquarium(data, today) {
 
 // 記録をつけたときに、その日に来た いきもの・ふえた かざりを ポップアップで見せる
 let popupTimer = null;
-function showArrivalPopup(lines) {
+function showArrivalPopup(day) {
   const popup = document.getElementById('arrivalPopup');
   popup.innerHTML = '';
-  lines.forEach(text => popup.appendChild(el('p', null, text)));
+  if (day.arrivals.length) {
+    const row = el('div', 'popup-art');
+    day.arrivals.forEach(c => {
+      const art = el('span');
+      art.style.width = `${Math.min(Aquarium.byId[c.id].size, 3) * 1.6}em`;
+      art.innerHTML = fishSvg(c.id);
+      row.appendChild(art);
+    });
+    popup.appendChild(row);
+  }
+  day.lines.forEach(text => popup.appendChild(el('p', null, text)));
   popup.classList.add('open');
   clearTimeout(popupTimer);
   popupTimer = setTimeout(() => popup.classList.remove('open'), 6000);
@@ -264,7 +306,7 @@ function toggleSlot(slot) {
   render();
   if (turnedOn) {
     const day = Aquarium.computeAquarium(data, todayStr(0)).days[selectedDate];
-    if (day) showArrivalPopup(day.lines);
+    if (day) showArrivalPopup(day);
   }
 }
 

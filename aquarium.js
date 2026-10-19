@@ -1,4 +1,4 @@
-// すいぞくかん：はみがき・フロスの記録で、月ごとの すいそうに いきものが ふえていく。
+// すいぞくかん：はみがきで 淡水の さかなが、フロスで 水草が、月ごとの すいそうに ふえていく。
 // 状態は保存せず、記録データ（日付 → { brush, floss }）から毎回計算する。
 // そのため CSV の書き出し・取り込みだけで すいそうも元にもどる。
 // 乱数は日付から決まるので、同じ記録なら何度計算しても同じ いきものが来る（引き直し不可）。
@@ -6,36 +6,24 @@
 (function (root) {
   'use strict';
 
-  const sp = (id, name, emoji) => ({ id, name, emoji });
+  const { SPECIES, PLANTS } = typeof module !== 'undefined' && module.exports ? require('./species.js') : root.Species;
+  const byId = Object.fromEntries(SPECIES.map(sp => [sp.id, sp]));
 
   // はみがきした日に来る さかな。レア度ごとに出やすさが違う
   const FISH = {
-    common: [sp('sakana', 'さかな', '🐟'), sp('nettaigyo', 'ねったいぎょ', '🐠'), sp('fugu', 'ふぐ', '🐡'),
-      sp('ebi', 'えび', '🦐'), sp('kani', 'かに', '🦀'), sp('ika', 'いか', '🦑')],
-    rare: [sp('lobster', 'ロブスター', '🦞'), sp('azarashi', 'あざらし', '🦭'), sp('penguin', 'ペンギン', '🐧'),
-      sp('rakko', 'ラッコ', '🦦'), sp('wani', 'ワニ', '🐊')],
-    superRare: [sp('iruka', 'いるか', '🐬'), sp('same', 'サメ', '🦈'), sp('kujira', 'くじら', '🐳'),
-      sp('ningyo', 'にんぎょ', '🧜')],
+    common: SPECIES.filter(sp => sp.tier === 'common'),
+    rare: SPECIES.filter(sp => sp.tier === 'rare'),
+    superRare: SPECIES.filter(sp => sp.tier === 'superRare'),
   };
   const RARITY_LABEL = { common: '', rare: 'めずらしい ', superRare: '‼️ とっても めずらしい ' };
   // 両方できた日は めずらしい さかなが 出やすい
   const WEIGHTS_COMPLETE = { common: 50, rare: 35, superRare: 15 };
   const WEIGHTS_BRUSH_ONLY = { common: 65, rare: 28, superRare: 7 };
 
-  // フロスした日に ふえる かざり
-  const DECOS = [sp('mizukusa', 'みずくさ', '🌿'), sp('kai', 'かいがら', '🐚'), sp('iwa', 'いわ', '🪨'),
-    sp('me', 'わかめの め', '🌱'), sp('hitode', 'ひとで', '⭐')];
+  // 両方の れんぞく日数が とどくと 来る、とくべつな おきゃくさん（7・14・30・100日）
+  const MILESTONES = SPECIES.filter(sp => sp.tier === 'milestone').sort((x, y) => x.streak - y.streak);
 
-  // 両方の れんぞく日数が この日数に とどくと、とくべつな おきゃくさんが来る
-  const MILESTONES = [
-    { days: 7, ...sp('kame', 'うみがめ', '🐢') },
-    { days: 14, ...sp('tako', 'たこ', '🐙') },
-    { days: 30, ...sp('zatoukujira', 'ざとうくじら', '🐋') },
-    { days: 100, ...sp('ryu', 'りゅうぐうの りゅう', '🐉') },
-  ];
-
-  // ずかんに のる いきもの（さかな ＋ おきゃくさん）
-  const ALL_CREATURES = [...FISH.common, ...FISH.rare, ...FISH.superRare, ...MILESTONES];
+  const ALL_CREATURES = SPECIES;
 
   // 日付文字列をシードにした乱数（FNV-1a でハッシュ → mulberry32）
   function seededRandom(seed) {
@@ -89,14 +77,18 @@
     return { tier, species: list[Math.floor(rand() * list.length)] };
   }
 
-  // すいそうの中の いち（%）。日付から決まるので、ひらくたびに同じ場所にいる
-  function placement(rand, isBig) {
+  // すいそうの中の いち（%）。およぐ場所（上・中・底）で たかさを きめる。日付から決まるので ひらくたびに同じ場所
+  const ZONE_Y = { top: [10, 24], mid: [26, 60], bottom: [76, 84] };
+  function placement(rand, sp) {
+    const [y0, y1] = ZONE_Y[sp.zone] || ZONE_Y.mid;
+    const crawler = sp.kind === 'snail';
+    const bottom = sp.zone === 'bottom';
     return {
-      x: 16 + rand() * 74, // 左へ泳いでも はみ出さないよう 左側に よゆうを とる
-      y: isBig ? 12 + rand() * 30 : 8 + rand() * 58,
-      swim: 6 + rand() * 8, // 秒
+      x: 14 + rand() * 72,
+      y: y0 + rand() * (y1 - y0),
+      swim: crawler ? 26 + rand() * 12 : bottom ? 10 + rand() * 8 : 6 + rand() * 8 + sp.size * 1.5, // 秒
       delay: -rand() * 10,
-      range: 12 + rand() * 24, // px
+      range: crawler ? 3 + rand() * 3 : bottom ? 4 + rand() * 8 : 12 + rand() * 24, // px
     };
   }
 
@@ -135,7 +127,7 @@
       const addCreature = (species, extra) => {
         const isNew = !state.discovered[species.id];
         if (isNew) state.discovered[species.id] = date;
-        const creature = { ...species, date, ...extra, place: placement(rand, extra.big) };
+        const creature = { id: species.id, name: species.name, tier: extra.tier, date, place: placement(rand, species) };
         month.creatures.push(creature);
         arrivals.push(creature);
         state.totalCreatures++;
@@ -145,20 +137,19 @@
       if (day.brush) {
         month.brushDays++;
         const { tier, species } = pickFish(complete ? WEIGHTS_COMPLETE : WEIGHTS_BRUSH_ONLY, rand);
-        const isNew = addCreature(species, { tier, big: false });
-        lines.push(`${RARITY_LABEL[tier]}${species.emoji}${species.name}が すいそうに きたよ！${isNew ? ' 🆕 はじめて！' : ''}`);
+        const isNew = addCreature(species, { tier });
+        lines.push(`${RARITY_LABEL[tier]}${species.name}が すいそうに きたよ！${isNew ? ' 🆕 はじめて！' : ''}`);
       }
       if (day.floss) {
-        const deco = DECOS[Math.floor(rand() * DECOS.length)];
-        month.decos.push({ ...deco, date, x: 3 + rand() * 90 });
+        const plant = PLANTS[Math.floor(rand() * PLANTS.length)];
+        month.decos.push({ id: plant.id, name: plant.name, size: plant.size, date, x: 4 + rand() * 92 });
         state.totalDecos++;
-        lines.push(`${deco.emoji}${deco.name}が ふえたよ！`);
+        lines.push(`🌿 ${plant.name}を うえたよ！`);
       }
-      const milestone = complete && MILESTONES.find(m => m.days === state.completeStreak);
+      const milestone = complete && MILESTONES.find(m => m.streak === state.completeStreak);
       if (milestone) {
-        const { days, ...species } = milestone;
-        const isNew = addCreature(species, { tier: 'milestone', big: true });
-        lines.push(`🎉 ${days}にち れんぞく！ とくべつな おきゃくさん ${species.emoji}${species.name}が きたよ！${isNew ? ' 🆕' : ''}`);
+        const isNew = addCreature(milestone, { tier: 'milestone' });
+        lines.push(`🎉 ${milestone.streak}にち れんぞく！ とくべつな おきゃくさん ${milestone.name}が きたよ！${isNew ? ' 🆕' : ''}`);
       }
 
       state.days[date] = { lines, arrivals };
@@ -181,12 +172,12 @@
     state.pastMonths = Object.values(state.months).filter(m => m.finished).sort((a, b) => (a.key < b.key ? 1 : -1));
     state.discoveredCount = Object.keys(state.discovered).length;
     state.discoverableTotal = ALL_CREATURES.length;
-    const nextMilestone = MILESTONES.find(m => m.days > state.completeStreak);
-    state.nextMilestone = nextMilestone ? { ...nextMilestone, remaining: nextMilestone.days - state.completeStreak } : null;
+    const nextMilestone = MILESTONES.find(m => m.streak > state.completeStreak);
+    state.nextMilestone = nextMilestone ? { id: nextMilestone.id, streak: nextMilestone.streak, remaining: nextMilestone.streak - state.completeStreak } : null;
     return state;
   }
 
-  const Aquarium = { FISH, DECOS, MILESTONES, ALL_CREATURES, seededRandom, addDays, computeAquarium };
+  const Aquarium = { FISH, PLANTS, MILESTONES, ALL_CREATURES, byId, seededRandom, addDays, computeAquarium };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = Aquarium;
   else root.Aquarium = Aquarium;
