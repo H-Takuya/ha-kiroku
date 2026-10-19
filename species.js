@@ -1,4 +1,4 @@
-// すいそうに来る 淡水の いきもの 30種と、フロスで ふえる 水草・石のデータ。
+// すいそうに来る 淡水の いきもの 34種と、フロスで ふえる 水草・石のデータ。
 // 名前は日本で一般に流通している呼び名。画面の文は ひらがな・カタカナだけにする（学名は おうちの人向け）。
 // size: 表示の大きさ（em）。zone: およぐ場所（top / mid / bottom）。
 // art: fishart.js が 絵を かくための指定（形・色・もよう）。左向きで かく。
@@ -6,7 +6,7 @@
   'use strict';
 
   const SPECIES = [
-    // ---- よく くる（12） ----
+    // ---- よく くる（14） ----
     {
       id: 'neon', name: 'ネオンテトラ', sci: 'Paracheirodon innesi', tier: 'common',
       home: 'みなみアメリカ', cm: 3, zone: 'mid', size: 1.6,
@@ -104,7 +104,45 @@
       art: { base: '#d9473b', foot: '#e8706a' },
     },
 
-    // ---- めずらしい（10） ----
+    {
+      id: 'negro', name: 'オトシンネグロ', sci: 'Otothyropsis piribebuy', tier: 'common',
+      home: 'みなみアメリカ', cm: 4, zone: 'bottom', size: 1.6,
+      note: 'くろっぽい オトシンの なかま。コケを たべて くれるよ。',
+      art: { hT: 8, hB: 7, tb: 3.5, tail: 'fork', tf: 9, dorsal: 'small', anal: 'small', sucker: true,
+        base: '#5c5438', back: '#3a3424', fin: '#6a6244',
+        pattern: [{ t: 'belly', y: 3.5, x0: 6, x1: 70, color: '#d8cfa6' }, { t: 'spots', n: 7, r: 2, color: '#2a2618', x0: 20, x1: 86, seed: 2 }],
+        tailPattern: [{ y: -6, h: 2, color: '#2a2618' }, { y: 2, h: 2, color: '#2a2618' }] },
+    },
+    {
+      id: 'erythromicron', name: 'ミクロラスボラ・エリスロミクロン', sci: 'Danio erythromicron', tier: 'common',
+      home: 'ミャンマー', cm: 3, zone: 'mid', size: 1.4,
+      note: 'あおい たてじまが たくさん。しっぽの ねもとに くろい てんが あるよ。',
+      art: { hT: 9, hB: 8.5, tb: 3.5, tail: 'fork', tf: 9, dorsal: 'small', anal: 'small',
+        base: '#d9744a', back: '#a8553a', fin: '#f08a4a',
+        pattern: [{ t: 'bands', xs: [26, 32, 38, 44, 50, 56, 62, 68, 74, 80], w: 2.6, color: '#46559a' },
+          { t: 'ellipse', cx: 84, cy: 0, rx: 3.2, ry: 2.6, color: '#151515' }] },
+    },
+
+    // ---- めずらしい（12） ----
+    {
+      id: 'hanabi', name: 'ミクロラスボラ・ハナビ', sci: 'Danio margaritatus', tier: 'rare',
+      home: 'ミャンマー', cm: 2.5, zone: 'mid', size: 1.4,
+      note: 'こんいろの からだに しろい みずたま。はなびみたいに きれい。',
+      art: { hT: 8.5, hB: 8.5, tb: 3.5, tail: 'fork', tf: 9, dorsal: 'small', anal: 'small',
+        base: '#3d5270', back: '#2a3a52', fin: '#f06a2a',
+        pattern: [{ t: 'belly', y: 5, x0: 10, x1: 56, color: '#e8743a' },
+          { t: 'spots', n: 18, r: 1.4, color: '#f4efd2', x0: 22, x1: 84, seed: 6 }],
+        tailPattern: [{ y: -5, h: 1.6, color: '#1a1a1a' }, { y: 3.5, h: 1.6, color: '#1a1a1a' }] },
+    },
+    {
+      id: 'sterbai', name: 'コリドラス・ステルバイ', sci: 'Corydoras sterbai', tier: 'rare',
+      home: 'みなみアメリカ', cm: 7, zone: 'bottom', size: 2.0,
+      note: 'くろい からだに しろい てんてん。オレンジいろの むなびれが めじるし。',
+      art: { hT: 16, hB: 8, tb: 4.5, hx: 0.36, tail: 'fork', tf: 10, dorsal: 'tall', anal: 'small', adipose: true, barbels: true,
+        base: '#3e3b35', back: '#2c2a26', fin: '#4a4740', pecColor: '#f28a2a', eyeY: -5,
+        pattern: [{ t: 'spots', n: 40, r: 1.3, color: '#ece6d4', x0: 8, x1: 88, seed: 12 }],
+        tailPattern: [{ y: -6, h: 1.2, color: '#ece6d4' }, { y: -1, h: 1.2, color: '#ece6d4' }, { y: 4, h: 1.2, color: '#ece6d4' }] },
+    },
     {
       id: 'angel', name: 'エンゼルフィッシュ', sci: 'Pterophyllum scalare', tier: 'rare',
       home: 'みなみアメリカ', cm: 15, zone: 'mid', size: 3.0,
@@ -194,9 +232,9 @@
         base: '#2c3cd4', back: '#1f2ca8', fin: '#4a62f0', finEdge: '#e0213a' },
     },
     {
-      id: 'zebrapleco', name: 'ゼブラプレコ', sci: 'Hypancistrus zebra', tier: 'superRare',
+      id: 'zebrapleco', name: 'インペリアルゼブラプレコ', sci: 'Hypancistrus zebra', tier: 'superRare',
       home: 'みなみアメリカ', cm: 8, zone: 'bottom', size: 2.2,
-      note: 'しろと くろの しましま。とても めずらしい ナマズの なかま。',
+      note: 'しろと くろの しましま。ブラジルの シングーがわ だけに すむ、とても めずらしい ナマズの なかま。',
       art: { hT: 11, hB: 7, tb: 4, hx: 0.3, tail: 'fork', tf: 10, dorsal: 'sail', anal: 'small', sucker: true, pectoral: true,
         base: '#f2f2ec', back: '#e2e2da', fin: '#f2f2ec', eyeY: -4, eyeColor: '#3a6fd8',
         pattern: [{ t: 'bands', xs: [18, 34, 52, 70, 86], w: 6, color: '#121214', slant: 6 }],

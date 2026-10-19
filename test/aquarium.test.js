@@ -63,11 +63,11 @@ test('両方できる方が めずらしい いきものが 多く来る', () =>
   assert.ok(count(() => ({ brush: true, floss: true })) > count(() => ({ brush: true })));
 });
 
-test('ずかんは 淡水の 30種で、id と 名前が かさならない', () => {
+test('ずかんは 淡水の 34種で、id と 名前が かさならない', () => {
   const { SPECIES } = require('../species.js');
-  assert.strictEqual(SPECIES.length, 30);
-  assert.strictEqual(new Set(SPECIES.map(s => s.id)).size, 30);
-  assert.strictEqual(new Set(SPECIES.map(s => s.name)).size, 30);
+  assert.strictEqual(SPECIES.length, 34);
+  assert.strictEqual(new Set(SPECIES.map(s => s.id)).size, 34);
+  assert.strictEqual(new Set(SPECIES.map(s => s.name)).size, 34);
   assert.deepStrictEqual(Aquarium.MILESTONES.map(s => s.streak), [7, 14, 30, 100]);
 });
 
