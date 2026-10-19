@@ -325,7 +325,7 @@
     }
     // むなびれ（ふつう）
     if (!a.pectoral && !a.wings) {
-      face += `<path d="M${f1(ex + er + 6)},${f1(CY + 2)} q6,2 9,7 q-6,-1 -9,-4 Z" fill="${a.fin}" opacity="0.6"/>`;
+      face += `<path d="M${f1(ex + er + 6)},${f1(CY + 2)} q6,2 9,7 q-6,-1 -9,-4 Z" fill="${a.pecColor || a.fin}" opacity="${a.pecColor ? 0.95 : 0.6}"/>`;
     }
 
     return `<svg viewBox="0 0 130 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>${defs}</defs>${back}${bodySvg}${face}</svg>`;
