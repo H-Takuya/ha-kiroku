@@ -126,7 +126,7 @@ function render() {
     historyEl.innerHTML = '<div id="empty">まだ きろくが ないよ</div>';
   }
 
-  renderGame(data, today);
+  renderAquarium(data, today);
 }
 
 function el(tag, className, text) {
@@ -136,95 +136,118 @@ function el(tag, className, text) {
   return node;
 }
 
-function renderGame(data, today) {
-  const game = Game.computeGame(data, today);
-  const equippedItem = key => {
-    const slot = Game.EQUIP_SLOTS.find(s => s.key === key);
-    return game.equipped[key] >= 0 ? slot.items[game.equipped[key]] : null;
-  };
+function monthLabel(monthKey) {
+  return `${Number(monthKey.slice(5, 7))}がつ`;
+}
 
-  // ヒーロー：つけている きせかえを 絵文字で まわりに ならべる
-  const avatarParts = { avHat: 'shield', avHand: 'weapon', avBody: 'armor', avCharm: 'accessory' };
-  Object.keys(avatarParts).forEach(id => {
-    const it = equippedItem(avatarParts[id]);
-    document.getElementById(id).textContent = it ? it.emoji : '';
+function shortDateLabel(dateStr) {
+  const [, m, d] = dateStr.split('-').map(Number);
+  return `${m}/${d}`;
+}
+
+// すいそうを 1つ えがく。mini は「これまでの すいそう」用の小さい版（うごかない・タップできない）
+function renderTank(container, month, mini) {
+  container.innerHTML = '';
+  container.className = 'tank' + (mini ? ' mini' : '');
+  if (!mini) {
+    for (let i = 0; i < 6; i++) {
+      const bubble = el('span', 'bubble');
+      bubble.style.left = `${10 + i * 16}%`;
+      bubble.style.animationDelay = `${-i * 1.3}s`;
+      container.appendChild(bubble);
+    }
+  }
+  month.decos.forEach(d => {
+    const deco = el('span', 'deco', d.emoji);
+    deco.style.left = `${d.x}%`;
+    container.appendChild(deco);
   });
-  document.getElementById('heroName').textContent = game.heroName;
-  document.getElementById('heroLevel').textContent = `レベル ${game.level}`;
-  document.getElementById('heroPower').textContent = `💪 パワー ${game.power}`;
-  document.getElementById('xpBar').style.width = `${Math.round(game.xpProgress * 100)}%`;
-  document.getElementById('xpNext').textContent =
-    game.level >= Game.MAX_LEVEL ? 'さいこう レベル！' : `つぎの レベルまで あと ${game.xpToNext}`;
-
-  const equipEl = document.getElementById('heroEquip');
-  equipEl.innerHTML = '';
-  Game.EQUIP_SLOTS.forEach(slot => {
-    const it = equippedItem(slot.key);
-    equipEl.appendChild(el('span', 'equip-chip' + (it ? '' : ' empty'), it ? `${it.emoji} ${it.name}` : `${slot.label}：まだ ない`));
+  month.creatures.forEach(c => {
+    const wrap = el('span', 'creature' + (c.big ? ' big' : '') + (c.tier === 'superRare' ? ' shiny' : ''));
+    wrap.style.left = `${c.place.x}%`;
+    wrap.style.top = `${c.place.y}%`;
+    const body = el('span', 'swim', c.emoji);
+    if (!mini) {
+      body.style.setProperty('--range', `${c.place.range}px`);
+      body.style.animationDuration = `${c.place.swim}s`;
+      body.style.animationDelay = `${c.place.delay}s`;
+      wrap.addEventListener('click', () => {
+        document.getElementById('tankCaption').textContent = `${c.emoji} ${c.name}（${shortDateLabel(c.date)}に きたよ）`;
+      });
+    }
+    wrap.appendChild(body);
+    container.appendChild(wrap);
   });
+  if (!month.creatures.length && !month.decos.length && !mini) {
+    container.appendChild(el('div', 'tank-empty', 'はみがきを すると さかなが くるよ！'));
+  }
+}
 
-  // エリアと ボスまでの すすみぐあい（ドットで みせる）
-  const area = game.area;
-  const loopLabel = game.loop > 0 ? `（${game.loop + 1}しゅうめ）` : '';
-  document.getElementById('areaName').textContent = `📍 ${area.name}${loopLabel}`;
-  const dotsEl = document.getElementById('areaDots');
-  dotsEl.innerHTML = '';
-  for (let i = 0; i < area.kills; i++) dotsEl.appendChild(el('span', 'dot' + (i < game.kills ? ' on' : '')));
-  const bossReady = game.kills >= area.kills;
-  dotsEl.appendChild(el('span', 'dot-boss' + (bossReady ? ' on' : ''), area.boss.emoji));
-  document.getElementById('areaHint').textContent = bossReady
-    ? `ボスの ${area.boss.name}と しょうぶ ちゅう！`
-    : `あと ${area.kills - game.kills}ひき ピカピカに すると ボスが でてくるよ`;
+function renderAquarium(data, today) {
+  const aq = Aquarium.computeAquarium(data, today);
+  const cur = aq.currentMonth;
 
-  const logEl = document.getElementById('battleLogBody');
+  document.getElementById('tankTitle').textContent = `🐠 ${monthLabel(cur.key)}の すいそう`;
+  document.getElementById('tankCount').textContent = `いきもの ${cur.creatures.length}ひき`;
+  renderTank(document.getElementById('tank'), cur, false);
+  document.getElementById('tankCaption').textContent = cur.creatures.length ? 'さかなを タッチすると いつ きたか わかるよ' : '';
+
+  document.getElementById('aqTotal').textContent = `これまでに きた いきもの ${aq.totalCreatures}ひき`;
+  const next = aq.nextMilestone;
+  document.getElementById('aqNext').textContent = next
+    ? `はみがきと フロス りょうほう あと ${next.remaining}にち つづけると とくべつな おきゃくさんが くるかも…？`
+    : 'とくべつな おきゃくさんは ぜんぶ きたよ！ すごい！';
+
+  const logEl = document.getElementById('dayLogBody');
   logEl.innerHTML = '';
-  const day = game.days[selectedDate];
+  const day = aq.days[selectedDate];
   const lines = day ? day.lines
-    : selectedDate === today ? ['はみがきを すると ぼうけんが はじまるよ！']
-    : ['この日は ぼうけんに いかなかったよ。'];
+    : selectedDate === today ? ['はみがきを すると さかなが くるよ！']
+    : ['この日は だれも こなかったよ。'];
   lines.forEach(text => logEl.appendChild(el('p', null, text)));
 
-  // きせかえ ずかん
-  document.getElementById('zukanCount').textContent = `${game.collectionCount}/${game.collectionTotal}`;
+  // これまでの すいそう
+  const pastEl = document.getElementById('pastTanks');
+  pastEl.innerHTML = '';
+  document.getElementById('pastSection').style.display = aq.pastMonths.length ? '' : 'none';
+  aq.pastMonths.forEach(m => {
+    const card = el('div', 'past-card');
+    card.appendChild(el('div', 'past-head',
+      `${m.perfect ? '👑 ' : ''}${monthLabel(m.key)}（${m.key.slice(0, 4)}）　いきもの ${m.creatures.length}ひき`));
+    const tank = el('div');
+    renderTank(tank, m, true);
+    card.appendChild(tank);
+    pastEl.appendChild(card);
+  });
+
+  // いきもの ずかん
+  document.getElementById('zukanCount').textContent = `${aq.discoveredCount}/${aq.discoverableTotal}`;
   const zukanEl = document.getElementById('zukanList');
   zukanEl.innerHTML = '';
-  Game.EQUIP_SLOTS.forEach(slot => {
-    zukanEl.appendChild(el('div', 'zukan-head', slot.label));
+  const groups = [
+    ['よく くる いきもの', Aquarium.FISH.common],
+    ['めずらしい いきもの', Aquarium.FISH.rare],
+    ['とっても めずらしい いきもの', Aquarium.FISH.superRare],
+    ['とくべつな おきゃくさん', Aquarium.MILESTONES],
+  ];
+  groups.forEach(([title, list]) => {
+    zukanEl.appendChild(el('div', 'zukan-head', title));
     const grid = el('div', 'zukan-grid');
-    slot.items.forEach((it, tier) => {
-      const owned = !!game.collection[`${slot.key}:${tier}`];
-      const cell = el('div', 'zukan-cell' + (owned ? ' owned' : '') + (game.equipped[slot.key] === tier ? ' equipped' : ''));
-      cell.appendChild(el('span', 'zukan-emoji', owned ? it.emoji : '？'));
-      cell.appendChild(el('span', 'zukan-name', owned ? it.name : '？？？'));
+    list.forEach(c => {
+      const first = aq.discovered[c.id];
+      const cell = el('div', 'zukan-cell' + (first ? ' owned' : ''));
+      cell.appendChild(el('span', 'zukan-emoji', first ? c.emoji : '？'));
+      cell.appendChild(el('span', 'zukan-name', first ? c.name : (c.days ? `${c.days}にちで…` : '？？？')));
       grid.appendChild(cell);
     });
     zukanEl.appendChild(grid);
   });
-
-  // なかま ずかん
-  document.getElementById('friendsCount').textContent = `${game.friendsCount}/${game.friendsTotal}`;
-  const friendsEl = document.getElementById('friendsList');
-  friendsEl.innerHTML = '';
-  Game.AREAS.forEach(a => {
-    friendsEl.appendChild(el('div', 'zukan-head', a.name));
-    const grid = el('div', 'zukan-grid');
-    a.monsters.concat([a.boss]).forEach(m => {
-      const met = !!game.friends[m.name];
-      const cell = el('div', 'zukan-cell' + (met ? ' owned' : '') + (m === a.boss ? ' boss' : ''));
-      cell.appendChild(el('span', 'zukan-emoji', met ? m.emoji : '？'));
-      cell.appendChild(el('span', 'zukan-name', met ? m.name : '？？？'));
-      grid.appendChild(cell);
-    });
-    friendsEl.appendChild(grid);
-  });
-
-  return game;
 }
 
-// 記録をつけたときに、その日に起きたこと（レベルアップ・たからばこ・戦闘）をポップアップで見せる
+// 記録をつけたときに、その日に来た いきもの・ふえた かざりを ポップアップで見せる
 let popupTimer = null;
-function showAdventurePopup(lines) {
-  const popup = document.getElementById('advPopup');
+function showArrivalPopup(lines) {
+  const popup = document.getElementById('arrivalPopup');
   popup.innerHTML = '';
   lines.forEach(text => popup.appendChild(el('p', null, text)));
   popup.classList.add('open');
@@ -240,8 +263,8 @@ function toggleSlot(slot) {
   saveData(data);
   render();
   if (turnedOn) {
-    const day = Game.computeGame(data, todayStr(0)).days[selectedDate];
-    if (day) showAdventurePopup(day.lines);
+    const day = Aquarium.computeAquarium(data, todayStr(0)).days[selectedDate];
+    if (day) showArrivalPopup(day.lines);
   }
 }
 
@@ -373,12 +396,12 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => toggleSlot(btn.dataset.slot));
   });
   document.getElementById('prevDay').addEventListener('click', () => {
-    selectedDate = Game.addDays(selectedDate, -1);
+    selectedDate = Aquarium.addDays(selectedDate, -1);
     render();
   });
   document.getElementById('nextDay').addEventListener('click', () => {
     if (selectedDate < todayStr(0)) {
-      selectedDate = Game.addDays(selectedDate, 1);
+      selectedDate = Aquarium.addDays(selectedDate, 1);
       render();
     }
   });
@@ -386,7 +409,7 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedDate = todayStr(0);
     render();
   });
-  document.getElementById('advPopup').addEventListener('click', e => e.currentTarget.classList.remove('open'));
+  document.getElementById('arrivalPopup').addEventListener('click', e => e.currentTarget.classList.remove('open'));
   // 開きっぱなしで日付が変わった場合、「今日」を見ていたなら新しい今日に追従する
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
